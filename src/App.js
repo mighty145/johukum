@@ -18,15 +18,15 @@ function App() {
           <Box textAlign="center">
             <Typography variant="h5" gutterBottom>Welcome to MAIDFINDER</Typography>
             <Box display="flex" justifyContent="center" gap={2} marginY={2}>
-              <img src={process.env.PUBLIC_URL + "/assets/broom.png"} alt="Broom Icon" style={{ width: 60, height: 60 }} />
-              <img src={process.env.PUBLIC_URL + "/assets/driver-cap.png"} alt="Driver Cap Icon" style={{ width: 60, height: 60 }} />
-            </Box>
-            <Button variant="contained" color="primary" fullWidth style={{ marginBottom: 16 }} onClick={() => setRole('maid')}>
-              I am looking for work
-            </Button>
-            <Button variant="contained" color="secondary" fullWidth onClick={() => setRole('owner')}>
-              I am looking for house help
-            </Button>
+            <img src={process.env.PUBLIC_URL + "/assets/broom.png"} alt="Broom Icon" style={{ width: 60, height: 60 }} />
+            <img src={process.env.PUBLIC_URL + "/assets/driver-cap.png"} alt="Driver Cap Icon" style={{ width: 60, height: 60 }} />
+          </Box>
+          <Button variant="contained" color="primary" fullWidth style={{ marginBottom: 16 }} onClick={() => setRole('maid')}>
+            I am looking for work
+          </Button>
+          <Button variant="contained" color="secondary" fullWidth onClick={() => setRole('owner')}>
+            I am looking for house help
+          </Button>
           </Box>
         )}
         {role === 'maid' && <MaidForm onBack={() => setRole(null)} />}

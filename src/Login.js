@@ -1,11 +1,44 @@
 import React, { useState } from 'react';
-import { TextField, Button, Box, Typography } from '@mui/material';
+import { TextField, Button, Box, Typography, Card, CardHeader, CardContent, Avatar, Grid } from '@mui/material';
+
+function ConnectButton({ maid }) {
+  const [showPhone, setShowPhone] = useState(false);
+  return (
+    <>
+      <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+        <Button variant="contained" color="success" sx={{ mt: 1, mb: 0, minWidth: 0, width: 'auto', px: 2 }} onClick={() => setShowPhone(true)}>
+          Connect
+        </Button>
+        {showPhone && (
+          <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 6 }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="#4b6043" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M22 16.92V19a2 2 0 0 1-2.18 2A19.86 19.86 0 0 1 3 5.18 2 2 0 0 1 5 3h2.09a2 2 0 0 1 2 1.72c.13 1.13.37 2.23.72 3.28a2 2 0 0 1-.45 2.11l-1.27 1.27a16 16 0 0 0 6.29 6.29l1.27-1.27a2 2 0 0 1 2.11-.45c1.05.35 2.15.59 3.28.72A2 2 0 0 1 22 16.92z"></path></svg>
+            </span>
+            <Typography variant="body1" sx={{ color: '#4b6043', fontWeight: 'bold', textAlign: 'left', display: 'inline' }}>
+              {maid.phone}
+            </Typography>
+          </Box>
+        )}
+      </Box>
+    </>
+  );
+}
 
 export default function Login({ onLogin, onRegister, onBack }) {
+  // Search bar state and filter logic
+  const [searchText, setSearchText] = useState('');
   const [mobile, setMobile] = useState('');
   const [notRegistered, setNotRegistered] = useState(false);
+  const [showMaids, setShowMaids] = useState(false);
+  const [maids, setMaids] = useState([]);
+  // Filter states
+  const [filterWorkType, setFilterWorkType] = useState('');
+  const [filterLocation, setFilterLocation] = useState('');
+  const [filterStartTime, setFilterStartTime] = useState('');
+  const [filterLiving, setFilterLiving] = useState('');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    // Validation
     if (!mobile) {
       alert('Please enter your registered mobile number');
       return;
@@ -14,55 +47,120 @@ export default function Login({ onLogin, onRegister, onBack }) {
       alert('Please enter a valid 10 digit mobile number.');
       return;
     }
-    setNotRegistered(false);
-    if (onLogin) onLogin(mobile);
+    // Check registration in backend
+    try {
+      const response = await fetch('http://192.168.1.4:5000/api/owners/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: mobile })
+      });
+      const result = await response.json();
+      if (result.status === 'success' && result.registered) {
+        // Fetch maids from backend
+        try {
+          const maidsResponse = await fetch('http://192.168.1.4:5000/api/maids');
+          const maidsJson = await maidsResponse.json();
+          setMaids(Array.isArray(maidsJson.maids) ? maidsJson.maids : []);
+        } catch (maidsError) {
+          alert('Error fetching maids data.');
+          console.error(maidsError);
+        }
+        setShowMaids(true);
+        onLogin && onLogin(mobile);
+      } else {
+        setNotRegistered(true);
+      }
+    } catch (error) {
+      alert('Error checking registration.');
+      console.error(error);
+    }
   };
 
+  // Always show login form at the top
   return (
-    <Box textAlign="center" mt={2}>
-      <Typography variant="h6" gutterBottom>Login</Typography>
-      <TextField
-        label="Mobile Number(10 digit)"
-        variant="outlined"
-        fullWidth
-        value={mobile}
-        onChange={e => setMobile(e.target.value.replace(/[^0-9]/g, ''))}
-        inputProps={{ maxLength: 10 }}
-        style={{ marginBottom: 24 }}
-      />
-      <Button
-        variant="contained"
-        color="primary"
-        fullWidth
-        style={{ marginBottom: 16 }}
-        onClick={handleLogin}
-      >
-        LOGIN
-      </Button>
-      <Button
-        variant="outlined"
-        color="secondary"
-        fullWidth
-        style={{ marginBottom: 16 }}
-        onClick={onRegister}
-      >
-        REGISTER
-      </Button>
-      <Button
-        variant="text"
-        fullWidth
-        onClick={onBack}
-      >
-        BACK TO HOME
-      </Button>
-      {notRegistered && (
-        <Typography color="error" sx={{ mt: 2 }}>
-          Mobile number not registered. Please register first.
-        </Typography>
-      )}
-    </Box>
-  );
-}
+    <>
+      <Box textAlign="center" mt={2}>
+        <Typography variant="h6" gutterBottom>Login</Typography>
+        <TextField
+          label="Mobile Number(10 digit)"
+          variant="outlined"
+          fullWidth
+          value={mobile}
+          onChange={e => setMobile(e.target.value.replace(/[^0-9]/g, ''))}
+          inputProps={{ maxLength: 10 }}
+          style={{ marginBottom: 24 }}
+        />
+        <Button
+          variant="contained"
+          color="primary"
+          fullWidth
+          style={{ marginBottom: 16 }}
+          onClick={handleLogin}
+        >
+          LOGIN
+        </Button>
+        <Button
+          variant="outlined"
+          color="secondary"
+          fullWidth
+          style={{ marginBottom: 16 }}
+          onClick={onRegister}
+        >
+          REGISTER
+        </Button>
+        <Button
+          variant="text"
+          fullWidth
+          onClick={onBack}
+        >
+          BACK TO HOME
+        </Button>
+        {notRegistered && (
+          <Typography color="error" sx={{ mt: 2 }}>
+            Mobile number not registered. Please register first.
+          </Typography>
+        )}
+      </Box>
+
+      {/* Show maids/features below login after login */}
+      {showMaids && (
+        (() => {
+          // Get unique values for dropdowns
+          const workTypeOptions = Array.from(new Set(maids.flatMap(m => (m.workType ? m.workType.split(',') : [])))).filter(Boolean);
+          const locationOptions = Array.from(new Set(maids.flatMap(m => (m.location ? m.location.split(',') : [])))).filter(Boolean);
+          const startTimeOptions = Array.from(new Set(maids.map(m => m.startTime).filter(Boolean)));
+          const endTimeOptions = Array.from(new Set(maids.map(m => m.endTime).filter(Boolean)));
+
+          // Filter logic
+          const filteredMaids = maids.filter(maid => {
+            const workTypeMatch = !filterWorkType || (maid.workType && maid.workType.split(',').map(w => w.trim()).includes(filterWorkType));
+            const locationMatch = !filterLocation || (maid.location && maid.location.split(',').map(l => l.trim()).includes(filterLocation));
+            const startTimeMatch = !filterStartTime || maid.startTime === filterStartTime;
+            const livingMatch = !filterLiving || (filterLiving === 'Yes' ? maid.living === 1 || maid.living === '1' : maid.living === 0 || maid.living === '0');
+            const availableMatch = maid.available === 1 || maid.available === '1';
+            return workTypeMatch && locationMatch && startTimeMatch && livingMatch && availableMatch;
+          });
+          const searchLower = searchText.toLowerCase();
+          const searchedMaids = filteredMaids.filter(maid => {
+            return (
+              (maid.name && maid.name.toLowerCase().includes(searchLower)) ||
+              (maid.workType && maid.workType.toLowerCase().includes(searchLower)) ||
+              (maid.location && maid.location.toLowerCase().includes(searchLower))
+            );
+          });
+
+          return (
+            <Box sx={{
+              minHeight: '100vh',
+              py: 4,
+              background: 'linear-gradient(135deg, #f8fafc 0%, #e3f0e8 100%)',
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Typography variant="h4" sx={{ fontWeight: 700, color: '#7c9473', letterSpacing: 1 }}>Available House help</Typography>
+                <Button variant="outlined" sx={{ borderColor: '#7c9473', color: '#7c9473', '&:hover': { borderColor: '#b2c9ab', color: '#b2c9ab' } }} onClick={() => { setShowMaids(false); setMaids([]); }}>
+                  Logout
+                </Button>
+              </Box>
               {/* Search Bar */}
               <Box sx={{ display: 'flex', alignItems: 'center', background: 'linear-gradient(90deg, #e3f0e8 0%, #f8fafc 100%)', borderRadius: 2, px: 2, py: 1, mb: 3, boxShadow: 1, maxWidth: 600, mx: 'auto', border: '1px solid #b2c9ab' }}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="#7c9473" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -178,4 +276,10 @@ export default function Login({ onLogin, onRegister, onBack }) {
               <Button variant="text" color="inherit" fullWidth style={{ marginTop: 32 }} onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); onBack(); }}>
                 Back to Home
               </Button>
-
+            </Box>
+          );
+        })()
+      )}
+    </>
+  );
+}
