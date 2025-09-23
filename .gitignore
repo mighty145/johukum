@@ -1,0 +1,13 @@
+# React project .gitignore
+node_modules/
+.env
+*.log
+.DS_Store
+
+# Build and cache directories
+build/
+.cache/
+dist/
+
+# gh-pages cache
+node_modules/.cache/gh-pages/
